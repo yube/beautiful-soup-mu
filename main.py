@@ -22,7 +22,7 @@ def parse_series_page(url):
 
     for type_tag in series_soup.find_all('div', {'class': 'sContent'}):
         type_text = type_tag.get_text().strip()
-        if type_text == "Manhwa" or type_text == "Manhua" or type_text == "Doujinshi":
+        if type_text == "Manhwa" or type_text == "Manhua":
             return None  # Return None to indicate this should be skipped
 
     img_tags = series_soup.find_all('img', {'class': 'img-fluid'})
