@@ -4,6 +4,7 @@ from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 from urllib.parse import urljoin
 
+NR_PAGES = 10
 
 def resize_image(img, max_height=224):
     width, height = img.size
@@ -42,7 +43,7 @@ def parse_series_page(url):
     return None
 
 
-def break_text(text, max_length=20):
+def break_text(text, max_length=19):
     if len(text) <= max_length:
         return [text]
 
@@ -60,9 +61,9 @@ def break_text(text, max_length=20):
     return lines
 
 
-def truncate_text(text, max_length=40):
+def truncate_text(text, max_length=50):
     if len(text) > max_length:
-        return text[:35] + "..."
+        return text[:45] + "..."
     return text
 
 
@@ -104,14 +105,14 @@ def create_montage(images, titles, images_per_row=10):
             draw.text((x_offset, y_offset + img_height + j * 20), line.strip(), font=font, fill=(0, 0, 0))
 
     # montage.show()
-    montage.save("montage.jpg")
+    montage.save("montage.png")
 
 
 
 ended_series = []
 
 # Loop through the first 50 pages
-for page_num in range(1, 101):
+for page_num in range(1, NR_PAGES+1):
     url = f"https://www.mangaupdates.com/releases.html?page={page_num}"
     print("url= ", url)
     response = requests.get(url)
