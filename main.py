@@ -4,6 +4,7 @@ from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 from urllib.parse import urljoin
 
+# edit this to change how many pages the tool explores
 NR_PAGES = 10
 
 def resize_image(img, max_height=224):
@@ -111,7 +112,7 @@ def create_montage(images, titles, images_per_row=10):
 
 ended_series = []
 
-# Loop through the first 50 pages
+# Loop through the first NR_PAGES pages
 for page_num in range(1, NR_PAGES+1):
     url = f"https://www.mangaupdates.com/releases.html?page={page_num}"
     print("url= ", url)
