@@ -26,6 +26,14 @@ def parse_series_page(url):
         if type_text == "Manhwa" or type_text == "Manhua" or type_text == "Doujinshi":
             return None  # Return None to indicate this should be skipped
 
+    # Check for "Completely Scanlated? No"
+    for cat_div, content_div in zip(series_soup.find_all('div', {'class': 'sCat'}),
+                                    series_soup.find_all('div', {'class': 'sContent'})):
+        cat_text = cat_div.get_text().strip()
+        content_text = content_div.get_text().strip()
+        if "Completely Scanlated?" in cat_text and content_text == "No":
+            return None  # Return None to indicate this should be skipped
+
     img_tags = series_soup.find_all('img', {'class': 'img-fluid'})
     if len(img_tags) >= 3:
         img_tag = img_tags[2]
