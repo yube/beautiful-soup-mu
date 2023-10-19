@@ -68,6 +68,7 @@ def parse_series_page(url):
             # print("Invalid URL for image:", img_url)
             return None
     else:
+        pass
         # print(url, img_tags)
     return None
 
