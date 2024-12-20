@@ -76,7 +76,7 @@ def parse_series_page(url):
     return placeholder_img
 
 
-def break_text(text, max_length=18):
+def break_text(text, max_length=19):
     if len(text) <= max_length:
         return [text]
 
