@@ -6,21 +6,14 @@ from urllib.parse import urljoin
 import time
 
 BEGIN_PAG = 1
-END_PAG = 10
+END_PAG = 15
 
 username = 'usr'
 password = 'pwd'
 
-# Initialize session object to manage cookies
 session = requests.Session()
-
-# Login URL
 login_url = 'https://www.mangaupdates.com/login.html'
-
-# Prepare the payload with your username and password
 payload = {'username': username, 'password': password, 'act': 'login'}
-
-# Perform login
 response = session.post(login_url, data=payload)
 
 def resize_image(img, max_height=224):
@@ -29,7 +22,7 @@ def resize_image(img, max_height=224):
         new_height = max_height
         aspect_ratio = width / height
         new_width = int(new_height * aspect_ratio)
-        img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        img = img.resize((new_width, new_height), Image.ANTIALIAS)
     return img
 
 
@@ -37,43 +30,53 @@ def parse_series_page(url):
     response = session.get(url)
     series_soup = BeautifulSoup(response.text, 'html.parser')
 
-    for type_tag in series_soup.find_all('div', {'class': 'sContent'}):
+
+    for type_tag in series_soup.find_all('div', {'class': 'info-box_sContent__CTwJh'}):
         type_text = type_tag.get_text().strip()
         if type_text == "Manhwa" or type_text == "Manhua" or type_text == "Doujinshi":
-            # print (url, 'hwa, hua, shi')
-            return None  # Return None to indicate this should be skipped
+            print (url, 'hwa, hua, shi')
+            return None
 
-    # Check for "Completely Scanlated? No"
     for cat_div, content_div in zip(series_soup.find_all('div', {'class': 'sCat'}),
                                     series_soup.find_all('div', {'class': 'sContent'})):
         cat_text = cat_div.get_text().strip()
         content_text = content_div.get_text().strip()
         if "Completely Scanlated?" in cat_text and content_text == "No":
-            # print(url, 'not complete')
-            return None  # Return None to indicate this should be skipped
+            print(url, 'not complete')
+            return None
 
     img_tags = series_soup.find_all('img', {'class': 'img-fluid'})
-    if len(img_tags) >= 4:
-        img_tag = img_tags[3]
-        img_url = img_tag['src']
+    for img_tag in img_tags:
+        img_url = img_tag.get('src')
+        alt_text = img_tag.get('alt', '').strip()
 
-        if not img_url.startswith(('http:', 'https:')):
-            img_url = urljoin(url, img_url)
+        if alt_text == "Series Image" and img_url:
+            if not img_url.startswith(('http:', 'https:')):
+                img_url = urljoin(url, img_url)
 
-        try:
-            img_response = requests.get(img_url)
-            img = Image.open(BytesIO(img_response.content))
-            return img
-        except requests.exceptions.MissingSchema:
-            # print("Invalid URL for image:", img_url)
-            return None
-    else:
-        pass
-        # print(url, img_tags)
-    return None
+            try:
+                img_response = requests.get(img_url)
+                img = Image.open(BytesIO(img_response.content))
+                return img
+            except requests.exceptions.MissingSchema:
+                print("Invalid URL for image:", img_url)
+                return None
+
+    placeholder_img = Image.new('RGB', (160, 225), color='gray')
+    draw = ImageDraw.Draw(placeholder_img)
+    try:
+        font = ImageFont.truetype("arial.ttf", 20) 
+    except IOError:
+        font = ImageFont.load_default()
+    text = "No Image"
+    text_width, text_height = draw.textsize(text, font=font)
+    text_position = ((placeholder_img.width - text_width) // 2, (placeholder_img.height - text_height) // 2)
+    draw.text(text_position, text, fill="black", font=font)
+
+    return placeholder_img
 
 
-def break_text(text, max_length=19):
+def break_text(text, max_length=18):
     if len(text) <= max_length:
         return [text]
 
@@ -126,7 +129,7 @@ def create_montage(images, titles, first_date, last_date, images_per_row=10):
 
     # Draw title
     title_text = f"Series completed from {last_date} to {first_date}"
-    title_width = draw.textlength(title_text, font=title_font)
+    title_width, title_height_actual = draw.textsize(title_text, font=title_font)
     title_position = ((montage_width - title_width) // 2, 10)  # X-center the text
     draw.text(title_position, title_text, font=title_font, fill=(0, 0, 0))
 
@@ -154,27 +157,28 @@ date_elements = []
 
 for page_num in range(BEGIN_PAG, END_PAG+1):
     time.sleep(10)
-    url = f"https://www.mangaupdates.com/releases.html?page={page_num}"
-    # print("url= ", url)
+    url = f"https://www.mangaupdates.com/releases?page={page_num}"
+    print("url= ", url)
     response = session.get(url)
     soup = BeautifulSoup(response.text, 'html.parser')
 
-    for p_tag in soup.find_all('p', {'class': 'd-inline titlesmall'}):
-        date_text = p_tag.get_text().strip()
+    date_span = soup.find('div', {'class': 'pt-3 new-release-day_release_day_title__YXsvx'}).find('i').find('span')
+    if date_span:
+        date_text = date_span.get_text().strip()
         date_elements.append(date_text)
 
-    for div in soup.find_all('div', {'class': 'col-2 pl-1 pbreak'}):
+    for div in soup.find_all('div', {'class': 'col-2 ps-1 new-release-item_pbreak__h_dGC'}):
         text = div.get_text().strip()
+
         if "(end)" in text:
-            prev_div = div.find_previous_sibling('div', {'class': 'col-6 pbreak'})
+            prev_div = div.find_previous_sibling('div', {'class': 'col-6 new-release-item_pbreak__h_dGC'})
 
             if prev_div is not None:
                 link_tag = prev_div.find('a')
+
                 if link_tag is not None and link_tag.get_text() != 'Add':
                     series_name = link_tag.get_text()
                     series_link = link_tag['href']
-
-                    # print(link_tag)
 
                     series_image = parse_series_page(series_link)
 
